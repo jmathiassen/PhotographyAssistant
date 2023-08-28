@@ -1,0 +1,14 @@
+[Unit]
+Description=Photography Backup Assistant
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=username
+WorkingDirectory=/path/to/photographybackupassistantdir
+ExecStart=/path/to/photographybackupassistantdir/executable
+
+[Install]
+WantedBy=multi-user.target
