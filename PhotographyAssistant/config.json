@@ -1,9 +1,11 @@
 {
   "import": {
-    "spool": [
-      "import"
+    "importDirectories": [
+      "/media/<username1>",
+      "/media/<username2>"
     ],
-    "storage": "spool/incoming",
+    "externalHardDiskIdentifier": ".exclude_this_drive",
+    "rootDirectory": "data/spool/import",
     "fileTypes": [
       {
         "extension": ".jpg",
@@ -49,19 +51,19 @@
   },
   "external": [
     {
-      "root": "spool/external/drive1",
-      "storage": "storage/drive1",
+      "root": "data/spool/external/drive1",
+      "physicalPaths": ["data/storage/drive1", "data/storage/ssd1"],
       "active": true
     },
     {
-      "root": "spool/external/drive2",
-      "storage": "storage/drive2",
+      "root": "data/spool/external/drive2",
+      "physicalPaths": ["data/storage/hdd2", "data/storage/ssd2"],
       "active": true
     }
   ],
   "remote": [
     {
-      "root": "spool/remote/host1",
+      "root": "data/spool/remote/host1",
       "username": "username",
       "pubKeyPath": "host1.pem",
       "host": "127.0.0.1",

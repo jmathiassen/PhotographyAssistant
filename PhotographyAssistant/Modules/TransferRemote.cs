@@ -7,7 +7,7 @@ public class TransferRemote(Config config)
 {
 	public bool NeedsProcessing(bool checkConnection = false)
 	{
-		foreach (RemoteHost host in config.remote.Where(x => x.active))
+		foreach (RemoteHost host in config.Access(c => c.remote).Where(x => x.active))
 		{
 			if (checkConnection)
 			{
@@ -24,7 +24,7 @@ public class TransferRemote(Config config)
 	{
 		try
 		{
-			foreach (RemoteHost remoteHost in config.remote.Where(x => x.active))
+			foreach (RemoteHost remoteHost in config.Access(c => c.remote).Where(remoteHost => remoteHost.active))
 			{
 				FileInfo? fileFrom = new DirectoryInfo(remoteHost.promote).GetFiles().FirstOrDefault();
 				if (fileFrom == null)
@@ -57,13 +57,13 @@ public class TransferRemote(Config config)
 				}
 				try
 				{
-					using (var streamFrom = File.OpenRead(fileFrom.FullName))
+					using (FileStream streamFrom = File.OpenRead(fileFrom.FullName))
 					{
-						remoteHost.scpClient!.Upload(streamFrom, $"{remoteHost.directory}/{fileFrom.Name}");
-						Logger.Log(GetType().Name, $"{remoteHost.promote}/{fileFrom.Name} -> {remoteHost.host}:{remoteHost.directory}/{fileFrom.Name} - Uploaded");
+						remoteHost.scpClient!.Upload(streamFrom, $"{Path.Combine(remoteHost.directory, fileFrom.Name)}");
+						Logger.Log(GetType().Name, $"{Path.Combine(remoteHost.promote, fileFrom.Name)} -> {remoteHost.host}:{remoteHost.directory}/{fileFrom.Name} - Uploaded");
 					}
 					File.Delete(fileFrom.FullName);
-					Logger.Log(GetType().Name, $"{remoteHost.directory}/{fileFrom.Name} - Deleted");
+					Logger.Log(GetType().Name, $"{Path.Combine(remoteHost.directory, fileFrom.Name)} - Deleted");
 				}
 				catch (Exception ex)
 				{

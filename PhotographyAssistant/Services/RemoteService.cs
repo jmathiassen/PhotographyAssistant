@@ -15,9 +15,9 @@ public class RemoteService : IHostedService
 	public RemoteService(Config config)
 	{
 		this.config = config;
-		transferRemote = new(config);
+		transferRemote = new TransferRemote(config);
 
-		mainTimer = new() {
+		mainTimer = new Timer {
 			Interval = 1000,
 			AutoReset = false
 		};
@@ -41,9 +41,9 @@ public class RemoteService : IHostedService
 		try
 		{
 			// Remote
-			foreach (var directory in config.remote.Where(x => x.active))
-				if (!Directory.Exists(directory.promote))
-					Directory.CreateDirectory(directory.promote);
+			foreach (string promoteDirectory in config.Access(c => c.remote).Select(remoteHost => remoteHost.promote))
+				if (!Directory.Exists(promoteDirectory))
+					Directory.CreateDirectory(promoteDirectory);
 
 			do {
 				if (transferRemote.NeedsProcessing()) transferRemote.Process();

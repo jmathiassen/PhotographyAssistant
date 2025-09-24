@@ -17,40 +17,40 @@ public class LocalService : IHostedService
 	public LocalService(Config config)
 	{
 		this.config = config;
-		import = new(config);
-		demux = new(config);
-		transferExternalHD = new(config);
+		import = new Import(config);
+		demux = new Demux(config);
+		transferExternalHD = new TransferExternalHD(config);
 
-		mainTimer = new() {
+		mainTimer = new Timer
+		{
 			Interval = 1000,
 			AutoReset = false
 		};
 		mainTimer.Elapsed += Process;
 	}
+
 	public async Task StartAsync(CancellationToken stoppingToken)
 	{
 		Logger.Log(GetType().Name, "Starting");
 		await Task.Run(() => mainTimer.Start(), stoppingToken);
 		Logger.Log(GetType().Name, "Started");
 	}
+
 	public async Task StopAsync(CancellationToken stoppingToken)
 	{
 		Logger.Log(GetType().Name, "Stopping");
 		await Task.Run(() => mainTimer.Stop(), stoppingToken);
 		Logger.Log(GetType().Name, "Stopped");
 	}
+
 	private void Process(object? source, System.Timers.ElapsedEventArgs e)
 	{
 		mainTimer.Enabled = false;
 		try
 		{
-			do
+			config.Access(currentConfig =>
 			{
 				// Importing
-				foreach (string importDirectory in config.import.importDirectories)
-					if (!Directory.Exists(importDirectory))
-						Directory.CreateDirectory(importDirectory);
-
 				if (!Directory.Exists(config.import.incomingDirectory))
 					Directory.CreateDirectory(config.import.incomingDirectory);
 				if (!Directory.Exists(config.import.promoteDirectory))
@@ -64,6 +64,7 @@ public class LocalService : IHostedService
 					if (!Directory.Exists(externalEntry.promote))
 						Directory.CreateDirectory(externalEntry.promote);
 				}
+
 				foreach (RemoteHost remoteEntry in config.remote.Where(x => x.active))
 				{
 					if (!Directory.Exists(remoteEntry.incoming))
@@ -71,12 +72,12 @@ public class LocalService : IHostedService
 					if (!Directory.Exists(remoteEntry.promote))
 						Directory.CreateDirectory(remoteEntry.promote);
 				}
+			});
 
-				// External
-				foreach (var directory in config.external.Where(x => x.active))
-					if (!Directory.Exists(directory.promote))
-						Directory.CreateDirectory(directory.promote);
+			import.CalculateProcessing();
 
+			do
+			{
 				if (import.NeedsProcessing()) import.Process();
 				else if (demux.NeedsProcessing()) demux.Process();
 				else if (transferExternalHD.NeedsProcessing()) transferExternalHD.Process();
@@ -90,6 +91,7 @@ public class LocalService : IHostedService
 		{
 			Logger.Log(GetType().Name, $"Problem during service check: {ex.Message} {ex.StackTrace}");
 		}
+
 		mainTimer.Enabled = true;
 	}
 }

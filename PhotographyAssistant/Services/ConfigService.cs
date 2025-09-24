@@ -14,7 +14,7 @@ public class ConfigService : IHostedService
 	{
 		this.config = config;
 		config.ReadConfig();
-		mainTimer = new() {
+		mainTimer = new Timer {
 			Interval = 1000
 		};
 		mainTimer.Elapsed += Process;

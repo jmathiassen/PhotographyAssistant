@@ -4,44 +4,57 @@ namespace PhotographyAssistant.Modules;
 
 public class TransferExternalHD(Config config)
 {
-	public bool NeedsProcessing()
-	{
-		foreach (ExternalHD hd in config.external.Where(x => x.active))
-		{
-			if (Directory.GetFiles(hd.promote).Length > 0 && Directory.Exists(hd.storage))
-				return true;
-		}
+	public bool NeedsProcessing() => config.Access(c => c.external)
+		.Where(x => x.active)
+		.Any(hd => Directory.GetFiles(hd.promote).Length > 0 && hd.physicalPaths.Where(Directory.Exists)
+			.Any());
 
-		return false;
-	}
 	public void Process()
 	{
 		try
 		{
-			foreach (var directory in config.external.Where(x => x.active))
+			foreach (ExternalHD driveGroup in config.Access(c => c.external).Where(x => x.active))
 			{
-				if (!Directory.Exists(directory.storage))
-					continue;
-
-				string? filePath = Directory.GetFiles(directory.promote).FirstOrDefault();
+				string? filePath = Directory.GetFiles(driveGroup.promote).FirstOrDefault();
 				if (filePath == null)
 					continue;
 
-				FileInfo exportFileFrom = new($"{directory.promote}/{new FileInfo(filePath).Name}");
-				FileInfo exportFileTo = FileOperations.EnsureUniqueFilename(GetType().Name, exportFileFrom, directory.storage);
+				FileInfo exportFileFrom = new(Path.Combine(driveGroup.promote, new FileInfo(filePath).Name));
+				string? usablePhysicalPath = driveGroup.physicalPaths.Where(path => {
+					try { return Directory.Exists(path) && new DriveInfo(path).AvailableFreeSpace > exportFileFrom.Length; }
+					catch { return false; }
+				}).OrderByDescending(path => {
+					try { return new DriveInfo(path).AvailableFreeSpace; }
+					catch { return 0; }
+				}).FirstOrDefault();
+
+				if (string.IsNullOrWhiteSpace(usablePhysicalPath))
+				{
+					if (!driveGroup.hasInsufficientSpace)
+					{
+						Logger.Log(GetType().Name, $"{exportFileFrom.FullName}: No physical path available with enough space");
+						driveGroup.hasInsufficientSpace = true;
+					}
+
+					continue;
+				}
+
+				driveGroup.hasInsufficientSpace = false;
+
+				FileInfo exportFileTo = FileOperations.EnsureUniqueFilename(GetType().Name, exportFileFrom, usablePhysicalPath);
 				if (!exportFileTo.Exists)
 				{
-					Logger.Log(GetType().Name, $"{exportFileFrom} -> {exportFileTo}: Copy");
+					Logger.Log(GetType().Name, $"{exportFileFrom.FullName} -> {exportFileTo.FullName}: Copy");
 					File.Copy(exportFileFrom.FullName, exportFileTo.FullName);
-					if (FileOperations.CompareFile(exportFileFrom, exportFileTo))
+					if (FileOperations.CompareFile(exportFileFrom.FullName, exportFileTo.FullName))
 					{
-						Logger.Log(GetType().Name, $"{exportFileFrom}: File successfully exported");
+						Logger.Log(GetType().Name, $"{exportFileFrom.FullName}: File successfully exported");
 						File.Delete(exportFileFrom.FullName);
 					}
 				}
-				else if (FileOperations.CompareFile(exportFileFrom, exportFileTo))
+				else if (FileOperations.CompareFile(exportFileFrom.FullName, exportFileTo.FullName))
 				{
-					Logger.Log(GetType().Name, $"{exportFileFrom}: File already successfully exported");
+					Logger.Log(GetType().Name, $"{exportFileFrom.FullName}: File already successfully exported");
 					File.Delete(exportFileFrom.FullName);
 				}
 			}

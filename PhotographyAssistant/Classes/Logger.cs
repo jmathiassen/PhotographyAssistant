@@ -6,8 +6,5 @@ public class Logger
     {
         Console.WriteLine($"[{timeFormat(DateTime.Now)}] [{category}]: {log}");
     }
-	private static string timeFormat(DateTime date)
-	{
-		return $"{date.Year}-{date.Month.ToString().PadLeft(2, '0')}-{date.Day.ToString().PadLeft(2, '0')} {date.Hour.ToString().PadLeft(2, '0')}:{date.Minute.ToString().PadLeft(2, '0')}:{date.Second.ToString().PadLeft(2, '0')}.{date.Millisecond.ToString().PadLeft(3, '0')}";
-	}
+	private static string timeFormat(DateTime date) => $"{date.Year:0000}-{date.Month:00}-{date.Day:00} {date.Hour:00}:{date.Minute:00}:{date.Second:00}.{date.Millisecond:000}";
 }
